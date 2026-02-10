@@ -11,26 +11,30 @@ struct MoviesScreen: View {
     let viewModel = MoviesVM()
     
     var body: some View {
-        List {
-            VStack(spacing: 0) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
                 NowPlayingMovieGroup(movies: viewModel.nowPlayingCatalog)
-            }
-            .frame(height: 320)
-            .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 0))
-            ForEach(viewModel.movieCatalogs, id: \.self) { catalog in
-                Section(catalog.category) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(catalog.movies, id: \.self) { movie in
-                                MoviePoster(movie: movie)
+                    .frame(height: 320)
+                ForEach(viewModel.movieCatalogs, id: \.id) { catalog in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(catalog.category)
+                            .font(.title2)
+                            .bold()
+                            .padding(.leading)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(catalog.movies, id: \.id) { movie in
+                                    MoviePoster(movie: movie)
+                                }
                             }
+                            .frame(height: 150)
+                            .padding(.horizontal)
                         }
-                        .frame(height: 150)
                     }
+                    .padding(.bottom, 12)
                 }
             }
         }
-        .listStyle(.plain)
         .edgesIgnoringSafeArea(.top)
     }
        

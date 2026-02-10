@@ -6,17 +6,19 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MoviePoster: View {
     var movie: Movie
     @State private var loader: ImageLoader
     
-    init(movie: Movie) {
+    init(movie: Movie, loader: ImageLoader? = nil) {
         self.movie = movie
-        guard let posterURL = movie.posterURL else {
-            fatalError("Movie must have a valid poster URL")
+        if let loader {
+            self._loader = State(initialValue: loader)
+        } else {
+            self._loader = State(initialValue: ImageLoader(url: movie.posterURL))
         }
-        self.loader = ImageLoader(url: posterURL)
     }
     
     var body: some View {
@@ -47,3 +49,25 @@ struct MoviePoster: View {
         return movie.posterURL
     }
 }
+
+#if DEBUG
+#Preview {
+    let sampleMovie = Movie(
+        id: 2661,
+        title: "Batman",
+        adult: false,
+        backDropPath: "/s2JJkEcVz1Q4uLnNhWZwCcBjqMr.jpg",
+        genreIds: [28,35,80],
+        originalLanguage: "en",
+        originalTitle: "Batman",
+        overview: "The Dynamic Duo faces four super-villains who plan to hold the world for ransom with the help of a secret invention that instantly dehydrates people.",
+        popularity: 4.5326,
+        posterPath: "/zzoPxWHnPa0eyfkMLgwbNvdEcVF.jpg",
+        releaseDate: "1966-07-30",
+        video: false,
+        voteAverage: 6.407
+    )
+    
+    MoviePoster(movie: sampleMovie, loader: ImageLoader(url: nil, shouldMock: true))
+}
+#endif

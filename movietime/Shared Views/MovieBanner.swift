@@ -48,4 +48,6 @@ struct MovieBanner: View {
         
 }
 
-//s
+#Preview {
+
+}

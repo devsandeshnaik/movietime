@@ -7,20 +7,26 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 @Observable
 final class ImageLoader {
-    
     var image: Image?
-    let url: URL
     
-    init(url: URL) {
+    @ObservationIgnored
+    let url: URL?
+    let shouldMock: Bool
+    
+    init(url: URL?, shouldMock: Bool = false) {
         self.url = url
+        self.shouldMock = shouldMock
     }
     
-    
     func load() async {
-        // check if image exists in cache
+        if shouldMock {
+            loadMockImage()
+        }
+        guard let url else { return }
         if let cachedImage = ImageCache.shared.image(url) {
             image = cachedImage
             return
@@ -38,4 +44,7 @@ final class ImageLoader {
         }
     }
     
+    private func loadMockImage() {
+        image = Image("movie_poster")
+    }
 }
