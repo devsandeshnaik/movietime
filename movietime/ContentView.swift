@@ -9,7 +9,19 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        MoviesScreen()
+        TabView {
+            MoviesScreen()
+                .tabItem {
+                    Text("Home")
+                }
+            
+            Color.red
+                .edgesIgnoringSafeArea(.all)
+                .tabItem {
+                    Text("Search")
+                }
+        }
+       
     }
 }
 

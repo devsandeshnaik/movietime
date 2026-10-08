@@ -9,42 +9,37 @@ import Foundation
 import SwiftUI
 import Combine
 
-@Observable
-final class ImageLoader {
-    var image: Image?
+protocol ImageLoaderProtocol {
+    func loadImage(for path: URL, imageType: ImageCache.ImageType) async throws -> Image
+}
+
+
+enum LoadingError: Error {
+    case FailedToLoad
+}
+
+/// Helps load the images from server, works along side image cache so no image is fetched if already available
+final class ImageLoader: ImageLoaderProtocol {
     
-    @ObservationIgnored
-    let url: URL?
-    let shouldMock: Bool
+    static let shared = ImageLoader()
+    private init() { }
     
-    init(url: URL?, shouldMock: Bool = false) {
-        self.url = url
-        self.shouldMock = shouldMock
-    }
-    
-    func load() async {
-        if shouldMock {
-            loadMockImage()
-        }
-        guard let url else { return }
-        if let cachedImage = ImageCache.shared.image(url) {
-            image = cachedImage
-            return
+    func loadImage(for url: URL, imageType: ImageCache.ImageType = .poster) async throws -> Image {
+        // Check cache first (both memory and disk)
+        if let cachedImage = ImageCache.shared.image(for: url) {
+            return cachedImage
         }
         
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            if let uiImage = UIImage(data: data) {
-                let image = Image(uiImage: uiImage)
-                ImageCache.shared.store(image, for: url)
-                self.image = image
-            }
-        } catch {
-            print("Image load failed:", error)
+        // Download image
+        let (data, _) = try await URLSession.shared.data(from: url)
+        guard let uiImage = UIImage(data: data) else {
+            throw LoadingError.FailedToLoad
         }
-    }
-    
-    private func loadMockImage() {
-        image = Image("movie_poster")
+        
+        // Cache the image (will be downscaled based on type)
+        ImageCache.shared.store(uiImage, for: url, imageType: imageType)
+        
+        // Return SwiftUI Image
+        return Image(uiImage: uiImage)
     }
 }

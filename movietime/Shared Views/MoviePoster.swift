@@ -8,40 +8,66 @@
 import SwiftUI
 import Combine
 
-struct MoviePoster: View {
-    var movie: Movie
-    @State private var loader: ImageLoader
+@MainActor @Observable
+class MoviePosterVM {
     
-    init(movie: Movie, loader: ImageLoader? = nil) {
+    enum Phase: Equatable {
+        case idle, loading, loaded(Image), failed
+    }
+    
+    var phase: Phase = .idle
+    
+    @ObservationIgnored
+    var movie: Movie
+    
+    init(_ movie: Movie) {
         self.movie = movie
-        if let loader {
-            self._loader = State(initialValue: loader)
-        } else {
-            self._loader = State(initialValue: ImageLoader(url: movie.posterURL))
+    }
+    
+    func loadImage(_ forced: Bool = false) async {
+        if(phase == .loading && forced == false) {
+            return
+        }
+            phase = .loading
+        guard let url = movie.posterURL else {
+            phase = .failed
+            return
+        }
+        do {
+            let image = try await ImageLoader.shared.loadImage(for: url, imageType: .poster)
+            phase = .loaded(image)
+        } catch {
+            phase = .failed
         }
     }
     
+    
+}
+
+struct MoviePoster: View {
+    var movie: Movie
+    @State private var vm: MoviePosterVM
+    
+    init(movie: Movie) {
+        self.movie = movie
+        _vm = State(initialValue: MoviePosterVM(movie))
+    }
+    
     var body: some View {
-        ZStack(alignment: .bottomLeading, content: {
-            if let image = loader.image {
+        Group {
+            switch vm.phase {
+            case .idle, .loading :
+                ProgressView()
+            case .loaded(let image):
                 image
                     .resizable()
                     .scaledToFit()
-                    
-                
-            } else {
-                ContentUnavailableView("Loading", systemImage: "circle.dotted")
-                    .background(Color.black.opacity(0.5))
-                    .redacted(reason: .placeholder)
+            case .failed:
+                Image(systemName: "photo").foregroundStyle(.secondary)
             }
-            Color.black.opacity(0.25)
-        })
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .animation(.easeIn, value: loader.image)
-        .task {
-            await loader.load()
         }
-        .frame(height: 150)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .task { await vm.loadImage() }
     }
     
     
@@ -68,6 +94,6 @@ struct MoviePoster: View {
         voteAverage: 6.407
     )
     
-    MoviePoster(movie: sampleMovie, loader: ImageLoader(url: nil, shouldMock: true))
+    MoviePoster(movie: sampleMovie)
 }
 #endif
